@@ -1,4 +1,5 @@
 import express from 'express';
+import fs from 'fs';
 import bodyParser from 'body-parser';
 import {filterImageFromURL, deleteLocalFiles} from './util/util';
 
@@ -28,10 +29,26 @@ import {filterImageFromURL, deleteLocalFiles} from './util/util';
   //   the filtered image file [!!TIP res.sendFile(filteredpath); might be useful]
 
   /**************************************************************************** */
-  app.get( "/filteredimage", async ( req: Request, res: Response ) => {
+  app.get( "/filteredimage", async ( req, res, next ) => {
 
-    try {
       let url = req.query.image_url;
+
+      const directoryPath = __dirname + "/util/tmp/";
+
+      const deleteImageFiles = () => {
+        fs.readdir(directoryPath, function (err, files) {
+          //handling error
+          if (err) {
+              return console.log('Unable to scan directory: ' + err);
+          } 
+
+          const absFiles = files.map((fileName) => {
+            return directoryPath + fileName;
+          })
+          //delete any file on the server
+          deleteLocalFiles(absFiles);
+        });
+      }
 
       // check url is valid
       if (!url) {
@@ -41,15 +58,19 @@ import {filterImageFromURL, deleteLocalFiles} from './util/util';
       // call filterImageFromURL
       const filtered_image = await filterImageFromURL(url);
 
+      
+
+
       // send the resulting file in the response
       res.status(200).sendFile(filtered_image);
 
       //delete any file on the server
-      deleteLocalFiles([]);
+      deleteImageFiles()
 
-    } catch(err) {
-      console.log(err.status); // TypeError: failed to fetch
-    }
+      
+
+        
+
   } );
 
 
